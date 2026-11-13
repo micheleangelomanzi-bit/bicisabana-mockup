@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Iniciar sesión · BiciSabana</title>
+  <meta name="description" content="Mockup académico del Sistema de Préstamos de BiciSabana (caso ficticio).">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="login-pagina">
+  <a class="skip" href="#formulario">Saltar al formulario</a>
+  <main class="login-tarjeta">
+    <img class="logo" src="assets/logo.png" alt="Escudo de la Universidad de La Sabana">
+    <h1>BiciSabana</h1>
+    <p class="sub">Sistema de préstamos de bicicletas</p>
+
+    <div id="mensaje" class="msg" role="alert" aria-live="assertive"></div>
+
+    <form id="formulario" novalidate>
+      <div class="campo">
+        <label for="codigo">Código de estudiante</label>
+        <input id="codigo" type="text" inputmode="numeric" maxlength="6" autocomplete="username" aria-describedby="ayuda-codigo" placeholder="6 números">
+        <p id="ayuda-codigo" class="ayuda">Debe tener exactamente 6 números.</p>
+      </div>
+      <div class="campo">
+        <label for="clave">Contraseña</label>
+        <div class="fila-pass">
+          <input id="clave" type="password" autocomplete="current-password" placeholder="Tu contraseña">
+          <button type="button" id="ver" class="btn sec" aria-pressed="false" aria-controls="clave">Mostrar</button>
+        </div>
+      </div>
+      <button type="submit" id="entrar" class="btn" style="width:100%">Ingresar</button>
+      <p style="text-align:center;margin:1rem 0 0"><button type="button" id="olvido" class="btn link">¿Olvidaste tu contraseña?</button></p>
+    </form>
+
+    <div class="demo" aria-label="Cuentas de demostración">
+      <strong>Cuentas de demostración (ficticias)</strong><br>
+      Estudiante: <code>202601</code> · <code>Sabana2026</code><br>
+      Administrador: <code>100001</code> · <code>Admin2026</code>
+    </div>
+    <p class="aviso-seg">Autenticación simulada para fines académicos; no ofrece seguridad real. Un sistema real requiere autenticación en servidor, contraseñas con hash y HTTPS.</p>
+  </main>
+
+  <script src="js/datos.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    (function () {
+      if (Auth.sesion()) { window.location.replace("app.html"); return; }
+
+      const msg = document.getElementById("mensaje");
+      const mostrar = (tipo, texto) => { msg.className = "msg " + tipo; msg.textContent = texto; };
+
+      // Mensajes por redirección (inactividad o acceso sin sesión)
+      const motivo = new URLSearchParams(location.search).get("motivo");
+      if (motivo === "inactividad") mostrar("aviso", "Tu sesión se cerró por inactividad. Ingresa de nuevo.");
+      if (motivo === "protegida") mostrar("aviso", "Inicia sesión para ver esa pantalla.");
+      if (motivo === "salida") mostrar("ok", "Cerraste sesión correctamente. ¡Hasta pronto!");
+
+      const clave = document.getElementById("clave");
+      const ver = document.getElementById("ver");
+      ver.addEventListener("click", () => {
+        const oculto = clave.type === "password";
+        clave.type = oculto ? "text" : "password";
+        ver.textContent = oculto ? "Ocultar" : "Mostrar";
+        ver.setAttribute("aria-pressed", String(oculto));
+      });
+
+      document.getElementById("olvido").addEventListener("click", () =>
+        mostrar("aviso", "Función simulada: en el sistema real se enviaría un enlace de recuperación a tu correo institucional."));
+
+      const boton = document.getElementById("entrar");
+      let reloj;
+      function vigilarBloqueo() {
+        clearInterval(reloj);
+        const actualizar = () => {
+          const s = Auth.segundosBloqueo();
+          boton.disabled = s > 0;
+          if (s > 0) mostrar("aviso", `Demasiados intentos. Intenta de nuevo en ${s} segundos.`);
+          else if (msg.textContent.startsWith("Demasiados")) { mostrar("ok", "Ya puedes intentarlo de nuevo."); clearInterval(reloj); }
+        };
+        actualizar();
+        if (Auth.segundosBloqueo() > 0) reloj = setInterval(actualizar, 1000);
+      }
+      vigilarBloqueo();
+
+      document.getElementById("formulario").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        boton.disabled = true;
+        try {
+          const r = await Auth.iniciarSesion(document.getElementById("codigo").value, clave.value);
+          if (r.ok) { window.location.href = "app.html"; return; }
+          mostrar(r.tipo, r.mensaje);
+          clave.value = "";
+        } catch (err) {
+          mostrar("error", "Algo salió mal. Intenta de nuevo.");
+        }
+        boton.disabled = false;
+        vigilarBloqueo();
+      });
+    })();
+  </script>
+</body>
+</html>
