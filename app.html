@@ -2,11 +2,14 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Panel · BiciSabana</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="css/styles.css">
 </head>
-<body>
+<body class="panel">
   <a class="skip" href="#vista">Saltar al contenido</a>
   <header class="encabezado">
     <div class="marca">
@@ -17,11 +20,11 @@
       <span class="chip" id="chip-usuario"></span>
       <button type="button" id="salir" class="btn sec">Cerrar sesión</button>
     </div>
+    <nav class="menu" id="menu" aria-label="Menú principal"></nav>
   </header>
 
-  <nav class="menu" id="menu" aria-label="Menú principal"></nav>
-
-  <main id="vista" tabindex="-1" aria-live="polite"></main>
+  <main id="vista" tabindex="-1"></main>
+  <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
 
   <footer class="pie">
     <img src="assets/logo.png" alt="Universidad de La Sabana">

@@ -5,41 +5,77 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Iniciar sesión · BiciSabana</title>
   <meta name="description" content="Mockup académico del Sistema de Préstamos de BiciSabana (caso ficticio).">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="login-pagina">
   <a class="skip" href="#formulario">Saltar al formulario</a>
-  <main class="login-tarjeta">
-    <img class="logo" src="assets/logo.png" alt="Escudo de la Universidad de La Sabana">
-    <h1>BiciSabana</h1>
-    <p class="sub">Sistema de préstamos de bicicletas</p>
+  <div class="login-grid">
 
-    <div id="mensaje" class="msg" role="alert" aria-live="assertive"></div>
-
-    <form id="formulario" novalidate>
-      <div class="campo">
-        <label for="codigo">Código de estudiante</label>
-        <input id="codigo" type="text" inputmode="numeric" maxlength="6" autocomplete="username" aria-describedby="ayuda-codigo" placeholder="6 números">
-        <p id="ayuda-codigo" class="ayuda">Debe tener exactamente 6 números.</p>
+    <aside class="hero">
+      <div class="hero-in">
+        <div class="hero-logo"><img src="assets/logo.png" alt="Escudo de la Universidad de La Sabana"><span>Universidad de La Sabana</span></div>
+        <p class="hero-titulo">Pedalea por el <span>campus</span>, sin filas ni cuadernos.</p>
+        <p>Pide, devuelve y consulta las bicicletas de la estación en segundos.</p>
+        <svg class="hero-bici" viewBox="0 0 340 200" role="img" aria-label="Ilustración de una bicicleta">
+          <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="75" cy="135" r="55" stroke="#ffffff" stroke-width="7"/>
+            <circle cx="265" cy="135" r="55" stroke="#ffffff" stroke-width="7"/>
+            <circle cx="75" cy="135" r="6" fill="#d0a00c" stroke="none"/>
+            <circle cx="265" cy="135" r="6" fill="#d0a00c" stroke="none"/>
+            <path d="M75 135 L150 135 L118 62 L75 135 M118 62 L225 62 L150 135 M225 62 L265 135" stroke="#d0a00c" stroke-width="8"/>
+            <path d="M225 62 L218 38 L245 34 M100 52 L135 52" stroke="#ffffff" stroke-width="7"/>
+            <circle cx="150" cy="135" r="11" stroke="#ff6b6f" stroke-width="6"/>
+          </g>
+        </svg>
+        <ul class="hero-datos">
+          <li>30 bicicletas</li><li>Préstamo en segundos</li><li>Control en tiempo real</li>
+        </ul>
       </div>
-      <div class="campo">
-        <label for="clave">Contraseña</label>
-        <div class="fila-pass">
-          <input id="clave" type="password" autocomplete="current-password" placeholder="Tu contraseña">
-          <button type="button" id="ver" class="btn sec" aria-pressed="false" aria-controls="clave">Mostrar</button>
+    </aside>
+
+    <main class="login-panel">
+      <div class="login-tarjeta">
+        <h1>Bienvenido(a)</h1>
+        <p class="sub">Inicia sesión en BiciSabana</p>
+
+        <div id="mensaje" class="msg" role="alert" aria-live="assertive"></div>
+
+        <form id="formulario" novalidate>
+          <div class="campo">
+            <label for="codigo">Código de estudiante</label>
+            <div class="con-icono">
+              <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></span>
+              <input id="codigo" type="text" inputmode="numeric" maxlength="6" autocomplete="username" aria-describedby="ayuda-codigo" placeholder="6 números">
+            </div>
+            <p id="ayuda-codigo" class="ayuda">Debe tener exactamente 6 números.</p>
+          </div>
+          <div class="campo">
+            <label for="clave">Contraseña</label>
+            <div class="fila-pass">
+              <div class="con-icono">
+                <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>
+                <input id="clave" type="password" autocomplete="current-password" placeholder="Tu contraseña">
+              </div>
+              <button type="button" id="ver" class="btn sec mini" aria-pressed="false" aria-controls="clave">Mostrar</button>
+            </div>
+          </div>
+          <button type="submit" id="entrar" class="btn" style="width:100%">Ingresar</button>
+          <p style="text-align:center;margin:1rem 0 0"><button type="button" id="olvido" class="btn link">¿Olvidaste tu contraseña?</button></p>
+        </form>
+
+        <div class="demo">
+          <strong>Cuentas de demostración (ficticias)</strong>
+          Estudiante <code>202601</code> · Administrador <code>100001</code><br>
+          <button type="button" data-cod="202601" data-clave="Sabana2026">Usar cuenta Estudiante</button>
+          <button type="button" data-cod="100001" data-clave="Admin2026">Usar cuenta Administrador</button>
         </div>
+        <p class="aviso-seg">Autenticación simulada para fines académicos; no ofrece seguridad real. Un sistema real requiere autenticación en servidor, contraseñas con hash y HTTPS.</p>
       </div>
-      <button type="submit" id="entrar" class="btn" style="width:100%">Ingresar</button>
-      <p style="text-align:center;margin:1rem 0 0"><button type="button" id="olvido" class="btn link">¿Olvidaste tu contraseña?</button></p>
-    </form>
-
-    <div class="demo" aria-label="Cuentas de demostración">
-      <strong>Cuentas de demostración (ficticias)</strong><br>
-      Estudiante: <code>202601</code> · <code>Sabana2026</code><br>
-      Administrador: <code>100001</code> · <code>Admin2026</code>
-    </div>
-    <p class="aviso-seg">Autenticación simulada para fines académicos; no ofrece seguridad real. Un sistema real requiere autenticación en servidor, contraseñas con hash y HTTPS.</p>
-  </main>
+    </main>
+  </div>
 
   <script src="js/datos.js"></script>
   <script src="js/auth.js"></script>
@@ -50,12 +86,13 @@
       const msg = document.getElementById("mensaje");
       const mostrar = (tipo, texto) => { msg.className = "msg " + tipo; msg.textContent = texto; };
 
-      // Mensajes por redirección (inactividad o acceso sin sesión)
+      // Mensajes por redirección (inactividad, acceso sin sesión o salida)
       const motivo = new URLSearchParams(location.search).get("motivo");
       if (motivo === "inactividad") mostrar("aviso", "Tu sesión se cerró por inactividad. Ingresa de nuevo.");
       if (motivo === "protegida") mostrar("aviso", "Inicia sesión para ver esa pantalla.");
       if (motivo === "salida") mostrar("ok", "Cerraste sesión correctamente. ¡Hasta pronto!");
 
+      const codigo = document.getElementById("codigo");
       const clave = document.getElementById("clave");
       const ver = document.getElementById("ver");
       ver.addEventListener("click", () => {
@@ -64,6 +101,11 @@
         ver.textContent = oculto ? "Ocultar" : "Mostrar";
         ver.setAttribute("aria-pressed", String(oculto));
       });
+
+      // Atajo de demostración: rellena el formulario con la cuenta ficticia elegida
+      document.querySelectorAll(".demo button").forEach(b => b.addEventListener("click", () => {
+        codigo.value = b.dataset.cod; clave.value = b.dataset.clave; clave.focus();
+      }));
 
       document.getElementById("olvido").addEventListener("click", () =>
         mostrar("aviso", "Función simulada: en el sistema real se enviaría un enlace de recuperación a tu correo institucional."));
@@ -87,7 +129,7 @@
         e.preventDefault();
         boton.disabled = true;
         try {
-          const r = await Auth.iniciarSesion(document.getElementById("codigo").value, clave.value);
+          const r = await Auth.iniciarSesion(codigo.value, clave.value);
           if (r.ok) { window.location.href = "app.html"; return; }
           mostrar(r.tipo, r.mensaje);
           clave.value = "";

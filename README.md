@@ -3,7 +3,7 @@
 Mockup académico (caso ficticio, datos ilustrativos) de la página web de BiciSabana, para Fundamentos de Programación, con el logo y la paleta de la Universidad de La Sabana. HTML + CSS + JavaScript, sin compilación.
 
 ## Cómo probarlo
-Abre `index.html` en el navegador (o publica con GitHub Pages).
+Abre `index.html` en el navegador (o la página publicada con GitHub Pages). En el login hay botones para rellenar las cuentas demo.
 
 | Rol | Código | Contraseña |
 |---|---|---|
@@ -16,7 +16,7 @@ Cuentas **ficticias** solo para demostración.
 
 ## Estructura
 ```
-index.html      Inicio de sesión
+index.html      Inicio de sesión (pantalla dividida)
 app.html        Panel (protegido)
 css/styles.css  Estilos y paleta
 js/auth.js      Login simulado, roles, bloqueo, inactividad
@@ -30,15 +30,24 @@ assets/logo.png Logo de la Universidad de La Sabana (versión reducida)
 |---|---|---|
 | Azul institucional | #043470 | Primario, encabezado, estado Disponible |
 | Rojo escudo | #9C080C | Alertas y estado Prestada |
-| Dorado | #D0A00C | Acentos, bordes y foco (no como texto sobre blanco) |
+| Dorado | #D0A00C | Acentos, pestaña activa, bordes y foco |
+
+## Pantallas
+- **Login:** pantalla dividida con ilustración, validación de código (6 números), mostrar/ocultar contraseña y bloqueo temporal.
+- **Inicio:** saludo, cifras rápidas, barra de ocupación, accesos directos y "Mis préstamos" (o prestadas ahora, para el administrador).
+- **Bicicletas:** tarjetas con buscador por código y filtros Todas / Disponibles / Prestadas; préstamo y devolución rápidos desde cada tarjeta.
+- **Prestar / Devolver:** formularios con códigos sugeridos y reglas a la vista.
+- **Mapa:** estación de 3 filas × 10 puestos con bicicleta dibujada en cada puesto.
+- **Totales (solo administrador):** anillo de porcentaje prestado, cifras e intentos rechazados.
 
 ## Requisitos del notebook cubiertos
-RF-01/02 ver bicicletas · RF-03/04/08 prestar con código de 6 números · RF-05 devolver · RF-06 disponibles · RF-07 buscar · RF-09 totales e intentos rechazados (admin) · RF-10 mapa 3×10 · RF-11 menú siempre disponible · RNF-01/02/03 mensajes amables y sin errores que rompan la interfaz.
+RF-01/02 ver bicicletas · RF-03/04/08 prestar con código de 6 números · RF-05 devolver · RF-06 disponibles (filtro) · RF-07 buscar por código · RF-09 totales e intentos rechazados (admin) · RF-10 mapa 3×10 · RF-11 menú siempre disponible · RNF-01/02/03 mensajes amables y sin errores que rompan la interfaz.
 
 ## Decisiones de diseño
-1. **Paleta y contraste:** azul para estructura y Disponible, rojo para Prestada y alertas; el dorado solo como acento. El estado nunca depende solo del color (texto "Disponible/Prestada" y letras D/P en el mapa).
-2. **Flujo:** login → panel con menú por rol → acciones con mensajes inmediatos; así Laura evita préstamos dobles y devoluciones sin registro.
+1. **Paleta y contraste:** azul para estructura y Disponible, rojo para Prestada y alertas; el dorado como acento (texto oscuro sobre dorado). El estado nunca depende solo del color (texto "Disponible/Prestada" y letras D/P en el mapa).
+2. **Flujo:** login → inicio → acciones con mensajes inmediatos y avisos emergentes; así Laura evita préstamos dobles y devoluciones sin registro.
 3. **Roles:** el estudiante ve, busca, presta y devuelve lo suyo; el administrador además ve totales, intentos rechazados y puede operar por cualquier estudiante.
-4. **Validación:** código vacío, con letras o de longitud distinta de 6, bicicleta inexistente, ya prestada, devolución de una no prestada, opción inválida del menú, credenciales incorrectas y bloqueo de 30 s tras 3 fallos. Supuesto: los códigos de bicicleta no distinguen mayúsculas.
+4. **Validación:** código vacío, con letras o de longitud distinta de 6, bicicleta inexistente, ya prestada, devolución de una no prestada, opción inválida del menú, credenciales incorrectas y bloqueo de 30 s tras 3 intentos fallidos (un código con formato inválido también cuenta como intento). Supuesto: los códigos de bicicleta no distinguen mayúsculas.
 5. **Límites del login simulado:** el hash y las cuentas viven en el navegador; en producción se necesita servidor, hash con sal, HTTPS y control de sesiones.
-6. **Accesibilidad:** etiquetas en campos, foco visible, navegación por teclado, regiones `aria-live` y enlace "saltar al contenido"; diseño responsivo con tablas desplazables.
+6. **Accesibilidad:** etiquetas en campos, foco visible, navegación por teclado, regiones `aria-live`, enlace "saltar al contenido" y respeto por `prefers-reduced-motion`.
+7. **Interfaz atractiva y práctica:** degradados y tarjetas con la paleta del logo, iconos SVG propios, animaciones suaves y, en celular, barra de navegación inferior para usar con el pulgar.
