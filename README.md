@@ -19,8 +19,10 @@ Cuentas **ficticias** solo para demostración.
 index.html      Inicio de sesión (pantalla dividida)
 app.html        Panel (protegido)
 css/styles.css  Estilos y paleta
+css/campus.css  Estilos de la pestaña Campus
 js/auth.js      Login simulado, roles, bloqueo, inactividad
 js/datos.js     30 bicicletas y reglas de préstamo/devolución
+js/campus.js    Mapa esquemático del campus (SVG) y puntos de préstamo
 js/app.js       Vistas del panel
 assets/logo.png Logo de la Universidad de La Sabana (versión reducida)
 ```
@@ -37,11 +39,12 @@ assets/logo.png Logo de la Universidad de La Sabana (versión reducida)
 - **Inicio:** saludo, cifras rápidas, barra de ocupación, accesos directos y "Mis préstamos" (o prestadas ahora, para el administrador).
 - **Bicicletas:** tarjetas con buscador por código y filtros Todas / Disponibles / Prestadas; préstamo y devolución rápidos desde cada tarjeta.
 - **Prestar / Devolver:** formularios con códigos sugeridos y reglas a la vista.
-- **Mapa:** estación de 3 filas × 10 puestos con bicicleta dibujada en cada puesto.
+- **Estación:** los 30 puestos (3 filas × 10) con una bicicleta dibujada en cada uno.
+- **Campus:** mapa esquemático de la universidad con 6 puntos de préstamo; se pueden elegir tocando el mapa, con teclado o desde la lista. La Estación Central muestra las bicicletas disponibles en vivo y los demás puntos son ilustrativos. Si agregas la captura del campus como `assets/campus.jpg`, aparece un botón "Vista satélite" (los puntos están en el mismo sistema de coordenadas de la captura).
 - **Totales (solo administrador):** anillo de porcentaje prestado, cifras e intentos rechazados.
 
 ## Requisitos del notebook cubiertos
-RF-01/02 ver bicicletas · RF-03/04/08 prestar con código de 6 números · RF-05 devolver · RF-06 disponibles (filtro) · RF-07 buscar por código · RF-09 totales e intentos rechazados (admin) · RF-10 mapa 3×10 · RF-11 menú siempre disponible · RNF-01/02/03 mensajes amables y sin errores que rompan la interfaz.
+RF-01/02 ver bicicletas · RF-03/04/08 prestar con código de 6 números · RF-05 devolver · RF-06 disponibles (filtro) · RF-07 buscar por código · RF-09 totales e intentos rechazados (admin) · RF-10 mapa 3×10 (Estación) · RF-11 menú siempre disponible · RNF-01/02/03 mensajes amables y sin errores que rompan la interfaz.
 
 ## Decisiones de diseño
 1. **Paleta y contraste:** azul para estructura y Disponible, rojo para Prestada y alertas; el dorado como acento (texto oscuro sobre dorado). El estado nunca depende solo del color (texto "Disponible/Prestada" y letras D/P en el mapa).
@@ -51,3 +54,4 @@ RF-01/02 ver bicicletas · RF-03/04/08 prestar con código de 6 números · RF-0
 5. **Límites del login simulado:** el hash y las cuentas viven en el navegador; en producción se necesita servidor, hash con sal, HTTPS y control de sesiones.
 6. **Accesibilidad:** etiquetas en campos, foco visible, navegación por teclado, regiones `aria-live`, enlace "saltar al contenido" y respeto por `prefers-reduced-motion`.
 7. **Interfaz atractiva y práctica:** degradados y tarjetas con la paleta del logo, iconos SVG propios, animaciones suaves y, en celular, barra de navegación inferior para usar con el pulgar.
+8. **Mapa del campus:** dibujado en SVG propio a partir de una captura del campus (río, vías, edificios y parqueadero), para que sea ligero, escalable y accesible. Las ubicaciones de los puntos son ilustrativas; en un sistema real vendrían de una base de datos de estaciones.

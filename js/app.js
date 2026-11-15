@@ -31,7 +31,8 @@
     reloj: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
     buscar: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
     alerta: '<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/>',
-    usuario: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>'
+    usuario: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>',
+    pin: '<path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>'
   };
   function icono(nombre) {
     const s = h("span", { class: "ico", "aria-hidden": "true" });
@@ -118,7 +119,8 @@
           accion("prestar", "prestar", "Prestar", "Pide una bicicleta disponible"),
           accion("devolver", "devolver", "Devolver", "Registra la devolución"),
           accion("bicicletas", "buscar", "Ver y buscar", "Explora y filtra las bicicletas"),
-          accion("mapa", "mapa", "Mapa", "Mira la estación 3 × 10"),
+          accion("campus", "pin", "Puntos de préstamo", "Encuentra dónde pedir una bicicleta"),
+          accion("mapa", "mapa", "Estación", "Mira los puestos 3 × 10"),
           esAdmin ? accion("totales", "totales", "Totales", "Cifras e intentos rechazados") : null),
         lista);
     },
@@ -237,6 +239,67 @@
           h("div", { class: "leyenda" }, h("span", {}, h("span", { class: "insignia d" }, "D · Disponible")), h("span", {}, h("span", { class: "insignia p" }, "P · Prestada")))));
     },
 
+    campus() {      // Mapa del campus con los puntos de préstamo (ubicaciones ilustrativas)
+      const caja = h("div", { class: "mapa-campus" });
+      caja.innerHTML = Campus.svg();   // SVG armado solo con constantes de campus.js
+      const panel = h("aside", { class: "panel-punto", "aria-live": "polite" });
+      const lista = h("div", { class: "lista-puntos", role: "group", "aria-label": "Lista de puntos de préstamo" });
+      const botonesLista = Campus.PUNTOS.map(p => h("button", { type: "button", class: "item-punto", "data-id": p.id, onclick: () => seleccionar(p.id) },
+        h("span", { class: "num" + (p.activo ? " central" : "") }, String(p.n)), p.nombre));
+      lista.append(...botonesLista);
+      const satelite = h("button", { type: "button", class: "btn sec mini btn-sat", hidden: true, "aria-pressed": "false" }, "Vista satélite");
+      let sel = "central";
+
+      function pintarPanel() {
+        const p = Campus.PUNTOS.find(x => x.id === sel);
+        panel.replaceChildren(h("span", { class: "etiqueta-estado " + (p.activo ? "activo" : "ilustrativo") }, p.activo ? "Con bicicletas en este prototipo" : "Punto ilustrativo"),
+          h("h3", {}, `${p.n}. ${p.nombre}`), h("p", {}, p.cerca));
+        if (p.activo) {
+          const t = Datos.totales();
+          panel.append(h("div", { class: "stat", style: "box-shadow:none;padding:.6rem 0" }, h("div", { class: "ico-caja" }, icono("check")),
+            h("div", { style: "flex:1" }, h("div", { class: "num" }, `${t.disponibles} de ${t.total}`), h("div", { class: "et" }, "bicicletas disponibles ahora"),
+              h("div", { class: "barra", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": String(Math.round(t.porcentaje)) }, h("i", { style: `width:${t.porcentaje}%` })))),
+            h("div", { class: "pie-tarjeta" }, h("button", { class: "btn mini", type: "button", onclick: () => renderizar("bicicletas") }, "Ver bicicletas"),
+              h("button", { class: "btn mini sec", type: "button", onclick: () => renderizar("mapa") }, "Ver estación 3 × 10")));
+        } else {
+          panel.append(h("p", { class: "ayuda" }, "Ubicación de ejemplo para el mockup: en el sistema real aquí verías las bicicletas disponibles de este punto."),
+            h("div", { class: "pie-tarjeta" }, h("button", { class: "btn mini sec", type: "button", onclick: () => seleccionar("central") }, "Ir a la Estación Central")));
+        }
+      }
+      function seleccionar(id) {
+        sel = id;
+        caja.querySelectorAll(".pin").forEach(g => g.classList.toggle("sel", g.dataset.id === id));
+        botonesLista.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.id === id)));
+        pintarPanel();
+      }
+      caja.addEventListener("click", (e) => { const g = e.target.closest(".pin"); if (g) seleccionar(g.dataset.id); });
+      caja.addEventListener("keydown", (e) => {
+        const g = e.target.closest && e.target.closest(".pin");
+        if (g && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); seleccionar(g.dataset.id); }
+      });
+
+      // Capa satélite opcional: solo aparece si existe assets/campus.jpg (la captura original del campus)
+      const prueba = new Image();
+      prueba.onload = () => { satelite.hidden = false; };
+      prueba.src = "assets/campus.jpg";
+      satelite.addEventListener("click", () => {
+        const on = caja.classList.toggle("sat");
+        satelite.setAttribute("aria-pressed", String(on));
+        satelite.textContent = on ? "Vista esquemática" : "Vista satélite";
+      });
+
+      seleccionar("central");
+      return h("div", { class: "vista-anim" },
+        h("h2", { class: "titulo" }, icono("pin"), "Puntos de préstamo"),
+        h("p", { class: "subtitulo" }, "Toca un punto del mapa o de la lista para ver sus detalles."),
+        h("div", { class: "campus-grid" },
+          h("div", {}, h("div", { class: "tarjeta", style: "padding:.8rem" }, caja,
+            h("div", { class: "leyenda" }, h("span", {}, h("span", { class: "leyenda-pin central" }), "Estación con bicicletas"), h("span", {}, h("span", { class: "leyenda-pin" }), "Punto ilustrativo"), satelite),
+            h("p", { class: "ayuda" }, "Mapa esquemático del campus dibujado a partir de una captura de Apple Maps. Las ubicaciones son ilustrativas.")),
+            lista),
+          panel));
+    },
+
     totales() {     // RF-09 (solo administrador)
       const t = Datos.totales();
       const msg = mensaje();
@@ -260,7 +323,7 @@
     }
   };
 
-  const ETIQUETAS = { inicio: ["Inicio", "inicio"], bicicletas: ["Bicicletas", "bicis"], prestar: ["Prestar", "prestar"], devolver: ["Devolver", "devolver"], mapa: ["Mapa", "mapa"], totales: ["Totales", "totales"] };
+  const ETIQUETAS = { inicio: ["Inicio", "inicio"], bicicletas: ["Bicicletas", "bicis"], prestar: ["Prestar", "prestar"], devolver: ["Devolver", "devolver"], mapa: ["Estación", "mapa"], campus: ["Campus", "pin"], totales: ["Totales", "totales"] };
   const PERMITIDAS = esAdmin ? Object.keys(ETIQUETAS) : Object.keys(ETIQUETAS).filter(k => k !== "totales");
   const ALIAS = { disponibles: "bicicletas", buscar: "bicicletas" };   // enlaces de la versión anterior
 
@@ -270,6 +333,8 @@
 
   function renderizar(nombre, aviso, mensajeTrasAccion) {
     let destino = ALIAS[nombre] || nombre;
+    // Al entrar a Bicicletas desde otra pestaña se reinician filtro y búsqueda (se conservan al prestar/devolver desde las tarjetas)
+    if (destino === "bicicletas" && actual !== "bicicletas") { filtro = "todas"; textoBusqueda = ""; }
     if (nombre === "disponibles") filtro = "disponibles";
     let nota = null;
     if (!PERMITIDAS.includes(destino)) {
