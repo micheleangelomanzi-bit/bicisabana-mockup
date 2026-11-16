@@ -1,9 +1,12 @@
 /* BiciSabana · Estilos de la pestaña Campus */
 .campus-grid { display: grid; grid-template-columns: 1.7fr 1fr; gap: 1.25rem; align-items: start; }
-.mapa-campus { position: relative; border-radius: 14px; overflow: hidden; background: #e7eedf; border: 2px solid var(--borde); }
+.mapa-campus { position: relative; border-radius: 14px; overflow: hidden; background: #2f3d57; border: 2px solid var(--borde); }
 .campus-svg { display: block; width: 100%; height: auto; }
-.mapa-campus.sat .vector { display: none; }
-.mapa-campus.sat .foto { display: inline; }
+.mapa-campus[data-vista="sat"] .vista-mapa { display: none; }
+.mapa-campus[data-vista="mapa"] .vista-sat { display: none; }
+.selector-vista { display: inline-flex; gap: .25rem; background: var(--azul-claro); padding: .25rem; border-radius: 999px; margin-bottom: .7rem; }
+.seg { background: transparent; border: 0; border-radius: 999px; padding: .4rem 1.1rem; font: 600 .88rem var(--fuente); color: var(--azul); cursor: pointer; }
+.seg[aria-pressed=true] { background: var(--azul); color: var(--blanco); box-shadow: 0 2px 8px rgba(4, 52, 112, .3); }
 
 /* Pines */
 .pin { cursor: pointer; outline: none; }
@@ -35,7 +38,6 @@
 /* Leyenda */
 .leyenda-pin { display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: var(--azul); margin-right: .4rem; vertical-align: -2px; }
 .leyenda-pin.central { background: var(--rojo); }
-.btn-sat { margin-left: auto; }
 
 @media (max-width: 900px) {
   .campus-grid { grid-template-columns: 1fr; }
