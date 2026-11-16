@@ -22,7 +22,8 @@ css/styles.css  Estilos y paleta
 css/campus.css  Estilos de la pestaña Campus
 js/auth.js      Login simulado, roles, bloqueo, inactividad
 js/datos.js     30 bicicletas y reglas de préstamo/devolución
-js/campus.js    Mapa esquemático del campus (SVG) y puntos de préstamo
+js/campus.js    Mapa del campus (vista satélite y vista mapa) y puntos de préstamo
+js/mapas/       Imágenes del campus incrustadas como texto (base64) en trozos
 js/app.js       Vistas del panel
 assets/logo.png Logo de la Universidad de La Sabana (versión reducida)
 ```
@@ -40,7 +41,7 @@ assets/logo.png Logo de la Universidad de La Sabana (versión reducida)
 - **Bicicletas:** tarjetas con buscador por código y filtros Todas / Disponibles / Prestadas; préstamo y devolución rápidos desde cada tarjeta.
 - **Prestar / Devolver:** formularios con códigos sugeridos y reglas a la vista.
 - **Estación:** los 30 puestos (3 filas × 10) con una bicicleta dibujada en cada uno.
-- **Campus:** mapa esquemático de la universidad con 6 puntos de préstamo; se pueden elegir tocando el mapa, con teclado o desde la lista. La Estación Central muestra las bicicletas disponibles en vivo y los demás puntos son ilustrativos. Si agregas la captura del campus como `assets/campus.jpg`, aparece un botón "Vista satélite" (los puntos están en el mismo sistema de coordenadas de la captura).
+- **Campus:** mapa real de la universidad con selector **Satélite / Mapa** y 6 puntos de préstamo numerados; se eligen tocando el mapa, con teclado o desde la lista. La Estación Central muestra las bicicletas disponibles en vivo y los demás puntos son ilustrativos.
 - **Totales (solo administrador):** anillo de porcentaje prestado, cifras e intentos rechazados.
 
 ## Requisitos del notebook cubiertos
@@ -54,4 +55,4 @@ RF-01/02 ver bicicletas · RF-03/04/08 prestar con código de 6 números · RF-0
 5. **Límites del login simulado:** el hash y las cuentas viven en el navegador; en producción se necesita servidor, hash con sal, HTTPS y control de sesiones.
 6. **Accesibilidad:** etiquetas en campos, foco visible, navegación por teclado, regiones `aria-live`, enlace "saltar al contenido" y respeto por `prefers-reduced-motion`.
 7. **Interfaz atractiva y práctica:** degradados y tarjetas con la paleta del logo, iconos SVG propios, animaciones suaves y, en celular, barra de navegación inferior para usar con el pulgar.
-8. **Mapa del campus:** dibujado en SVG propio a partir de una captura del campus (río, vías, edificios y parqueadero), para que sea ligero, escalable y accesible. Las ubicaciones de los puntos son ilustrativas; en un sistema real vendrían de una base de datos de estaciones.
+8. **Mapa del campus:** usa dos capturas del campus (satélite y mapa oscuro), reducidas a 640 px e incrustadas en `js/mapas/` para que la página funcione sin archivos de imagen aparte. Los puntos se colocan junto a lugares visibles en cada imagen; son ilustrativos y en un sistema real vendrían de una base de datos de estaciones. Imágenes: capturas de Apple Maps.

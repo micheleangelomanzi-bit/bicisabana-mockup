@@ -247,7 +247,9 @@
       const botonesLista = Campus.PUNTOS.map(p => h("button", { type: "button", class: "item-punto", "data-id": p.id, onclick: () => seleccionar(p.id) },
         h("span", { class: "num" + (p.activo ? " central" : "") }, String(p.n)), p.nombre));
       lista.append(...botonesLista);
-      const satelite = h("button", { type: "button", class: "btn sec mini btn-sat", hidden: true, "aria-pressed": "false" }, "Vista satélite");
+      caja.dataset.vista = "sat";
+      const botonesVista = Campus.vistas.map(([clave, texto]) => h("button", { type: "button", class: "seg", "data-k": clave, "aria-pressed": String(clave === "sat"),
+        onclick: () => { caja.dataset.vista = clave; botonesVista.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.k === clave))); } }, texto));
       let sel = "central";
 
       function pintarPanel() {
@@ -278,24 +280,15 @@
         if (g && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); seleccionar(g.dataset.id); }
       });
 
-      // Capa satélite opcional: solo aparece si existe assets/campus.jpg (la captura original del campus)
-      const prueba = new Image();
-      prueba.onload = () => { satelite.hidden = false; };
-      prueba.src = "assets/campus.jpg";
-      satelite.addEventListener("click", () => {
-        const on = caja.classList.toggle("sat");
-        satelite.setAttribute("aria-pressed", String(on));
-        satelite.textContent = on ? "Vista esquemática" : "Vista satélite";
-      });
-
       seleccionar("central");
       return h("div", { class: "vista-anim" },
         h("h2", { class: "titulo" }, icono("pin"), "Puntos de préstamo"),
         h("p", { class: "subtitulo" }, "Toca un punto del mapa o de la lista para ver sus detalles."),
         h("div", { class: "campus-grid" },
-          h("div", {}, h("div", { class: "tarjeta", style: "padding:.8rem" }, caja,
-            h("div", { class: "leyenda" }, h("span", {}, h("span", { class: "leyenda-pin central" }), "Estación con bicicletas"), h("span", {}, h("span", { class: "leyenda-pin" }), "Punto ilustrativo"), satelite),
-            h("p", { class: "ayuda" }, "Mapa esquemático del campus dibujado a partir de una captura de Apple Maps. Las ubicaciones son ilustrativas.")),
+          h("div", {}, h("div", { class: "tarjeta", style: "padding:.8rem" },
+            h("div", { class: "selector-vista", role: "group", "aria-label": "Tipo de mapa" }, botonesVista), caja,
+            h("div", { class: "leyenda" }, h("span", {}, h("span", { class: "leyenda-pin central" }), "Estación con bicicletas"), h("span", {}, h("span", { class: "leyenda-pin" }), "Punto ilustrativo")),
+            h("p", { class: "ayuda" }, "Imágenes: capturas de Apple Maps, reducidas para la web. Las ubicaciones de los puntos son ilustrativas.")),
             lista),
           panel));
     },
