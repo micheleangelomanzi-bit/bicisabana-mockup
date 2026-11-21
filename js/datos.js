@@ -1,7 +1,7 @@
 /* BiciSabana · Datos ilustrativos (el caso es ficticio).
    Persistencia con localStorage protegida con try/catch y respaldo en memoria.
    Incluye los requerimientos propios RP-02 a RP-10 (reservas, tiempo de préstamo, historial,
-   huella verde, mantenimiento, logros, calificación y reportes CSV). */
+   huella verde, mantenimiento, logros, calificación y reportes CSV) y RP-14 (préstamo grupal). */
 const Datos = (() => {
   const LLAVE = "bs_datos_v2";          // v2: nuevo modelo con historial, reservas y mantenimiento
   const FILAS = 3, PUESTOS = 10;
@@ -11,6 +11,7 @@ const Datos = (() => {
   const CO2_KG_POR_KM = 0.12;           // RP-05: emisión aproximada de un carro particular
   const PEDALEO_MAX_MIN = 30;           // RP-05: de cada préstamo se cuentan como máximo 30 min de pedaleo
   const TIPOS_DANO = ["Llanta", "Frenos", "Cadena", "Sillín", "Otro"];
+  const MAX_GRUPO = 3;                  // RP-14: líder + 2 compañeros
   const MIN = 60 * 1000;
   let memoria = null;
 
@@ -103,20 +104,56 @@ const Datos = (() => {
       vencidas, total, porcentaje, rechazados: rechazados() };
   }
 
-  function prestar(codigoBici, estudiante) {
-    const b = buscar(codigoBici);
-    const cod = normalizar(codigoBici);
-    if (!b) return { tipo: "error", texto: `No existe una bicicleta con el código ${cod || "(vacío)"}` };
+  // Motivo por el que una bicicleta no se le puede prestar a este estudiante (null si se puede)
+  function bloqueo(b, codigoBici, codigoEst) {
+    if (!b) return { tipo: "error", texto: `No existe una bicicleta con el código ${normalizar(codigoBici) || "(vacío)"}` };
     const e = estado(b);
     if (e === "prestada") return { tipo: "aviso", texto: `Aviso: la bicicleta ${b.codigo} ya está prestada.` };
     if (e === "mantenimiento") return { tipo: "aviso", texto: `Aviso: la bicicleta ${b.codigo} está en mantenimiento (${b.mantenimiento.tipo}). Elige otra.` };
-    if (e === "reservada" && b.reservadaA !== estudiante.codigo) {
+    if (e === "reservada" && b.reservadaA !== codigoEst) {
       return { tipo: "aviso", texto: `Aviso: la bicicleta ${b.codigo} está reservada por otra persona durante ${minutosReserva(b)} min más.` };
     }
-    Object.assign(b, { disponible: false, prestadaA: estudiante.codigo, nombre: estudiante.nombre, desde: ahora(), reservadaA: null, reservaHasta: null });
+    return null;
+  }
+  const asignar = (b, est, grupo) => Object.assign(b, { disponible: false, prestadaA: est.codigo, nombre: est.nombre, desde: ahora(),
+    reservadaA: null, reservaHasta: null, grupo: grupo || null });
+
+  function prestar(codigoBici, estudiante) {
+    const b = buscar(codigoBici);
+    const motivo = bloqueo(b, codigoBici, estudiante.codigo);
+    if (motivo) return motivo;
+    asignar(b, estudiante);
     guardar();
     return { tipo: "ok", texto: `Listo: la bicicleta ${b.codigo} fue prestada. Recuerda devolverla antes de ${LIMITE_MIN / 60} horas.` };
   }
+
+  /* RP-14: préstamo grupal. El líder elige su bicicleta y el sistema asigna una libre a cada compañero.
+     Si algo falla no se presta ninguna (todo o nada). El líder puede devolver todas las del grupo. */
+  function prestarGrupo(codigoBici, lider, companeros) {
+    const lista = (companeros || []).map(c => ({ codigo: (c.codigo || "").trim(), nombre: (c.nombre || "").trim() }));
+    if (lista.length === 0) return prestar(codigoBici, lider);
+    if (lista.length > MAX_GRUPO - 1) return { tipo: "error", texto: `Un grupo puede tener máximo ${MAX_GRUPO} personas.` };
+    const invalido = lista.find(c => !/^\d{6}$/.test(c.codigo));
+    if (invalido) { sumarRechazado(); return { tipo: "error", texto: `El código "${invalido.codigo || "(vacío)"}" de un compañero no es válido: debe tener 6 números.` }; }
+    if (lista.some(c => c.nombre === "")) return { tipo: "error", texto: "Escribe el nombre de cada compañero." };
+    const codigos = [lider.codigo, ...lista.map(c => c.codigo)];
+    if (new Set(codigos).size !== codigos.length) return { tipo: "error", texto: "Hay códigos repetidos en el grupo." };
+    const ocupado = lista.find(c => bicis().some(b => !b.disponible && b.prestadaA === c.codigo));
+    if (ocupado) return { tipo: "aviso", texto: `${ocupado.nombre} ya tiene una bicicleta prestada.` };
+    const b = buscar(codigoBici);
+    const motivo = bloqueo(b, codigoBici, lider.codigo);
+    if (motivo) return motivo;
+    const libres = bicis().filter(x => x !== b && estado(x) === "disponible");
+    if (libres.length < lista.length) return { tipo: "aviso", texto: `Solo quedan ${libres.length} bicicletas libres para tus compañeros.` };
+    asignar(b, lider, lider.codigo);
+    const asignadas = [{ nombre: lider.nombre, bici: b.codigo }];
+    lista.forEach((c, i) => { asignar(libres[i], c, lider.codigo); asignadas.push({ nombre: c.nombre, bici: libres[i].codigo }); });
+    guardar();
+    return { tipo: "ok", asignadas,
+      texto: `Listo: préstamo grupal de ${asignadas.length} bicicletas (${asignadas.map(a => `${a.nombre}: ${a.bici}`).join(" · ")}). Devuélvanlas antes de ${LIMITE_MIN / 60} horas.` };
+  }
+  // RP-14: ¿esta persona puede devolver la bicicleta? (la tiene a su nombre o es el líder del grupo)
+  const esResponsable = (b, codigo) => !b.disponible && (b.prestadaA === codigo || b.grupo === codigo);
 
   /* RP-02: reservar una bicicleta disponible por 10 minutos (máximo una reserva por estudiante) */
   function reservar(codigoBici, estudiante) {
@@ -144,7 +181,7 @@ const Datos = (() => {
     const cod = normalizar(codigoBici);
     if (!b) return { tipo: "error", texto: `No existe una bicicleta con el código ${cod || "(vacío)"}` };
     if (b.disponible) return { tipo: "aviso", texto: `Aviso: la bicicleta ${b.codigo} no estaba prestada.` };
-    if (sesion.rol !== "Administrador" && b.prestadaA !== sesion.codigo) {
+    if (sesion.rol !== "Administrador" && !esResponsable(b, sesion.codigo)) {
       return { tipo: "aviso", texto: `Aviso: la bicicleta ${b.codigo} no está prestada a tu cuenta. Pide ayuda a la administración.` };
     }
     const calificacion = Number.isInteger(op.calificacion) && op.calificacion >= 1 && op.calificacion <= 5 ? op.calificacion : null;
@@ -154,7 +191,7 @@ const Datos = (() => {
     const minutos = Math.max(1, Math.round((fin - inicio) / MIN));
     cargar().historial.push({ bici: b.codigo, codigo: b.prestadaA, nombre: b.nombre, inicio, fin, minutos, calificacion, dano });
     const tarde = minutos > LIMITE_MIN;
-    Object.assign(b, { disponible: true, prestadaA: null, nombre: null, desde: null });
+    Object.assign(b, { disponible: true, prestadaA: null, nombre: null, desde: null, grupo: null });
     if (dano) b.mantenimiento = { tipo: dano, fecha: fin, por: sesion.codigo };
     guardar();
     let texto = `Gracias: la bicicleta ${b.codigo} fue devuelta (${duracion(minutos)}).`;
@@ -222,7 +259,7 @@ const Datos = (() => {
     return m ? `${h} h ${m} min` : `${h} h`;
   }
 
-  return { bicis, buscar, estado, libreParaEstudiante, totales, prestar, devolver, reservar, cancelarReserva, reparar, sumarRechazado, reiniciar, normalizar,
+  return { bicis, buscar, estado, libreParaEstudiante, totales, prestar, prestarGrupo, esResponsable, devolver, reservar, cancelarReserva, reparar, sumarRechazado, reiniciar, normalizar,
     minutosPrestada, vencida, minutosReserva, historial, resumen, logros, satisfaccion, csvBicis, csvHistorial, duracion, usarReloj,
-    FILAS, PUESTOS, LIMITE_MIN, RESERVA_MIN, TIPOS_DANO };
+    FILAS, PUESTOS, LIMITE_MIN, RESERVA_MIN, TIPOS_DANO, MAX_GRUPO };
 })();
