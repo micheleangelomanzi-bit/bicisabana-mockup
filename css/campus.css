@@ -5,7 +5,7 @@
 .mapa-campus[data-vista="sat"] .vista-mapa { display: none; }
 .mapa-campus[data-vista="mapa"] .vista-sat { display: none; }
 .selector-vista { display: inline-flex; gap: .25rem; background: var(--azul-claro); padding: .25rem; border-radius: 999px; margin-bottom: .7rem; }
-.seg { background: transparent; border: 0; border-radius: 999px; padding: .4rem 1.1rem; font: 600 .88rem var(--fuente); color: var(--azul); cursor: pointer; }
+.seg { background: transparent; border: 0; border-radius: 999px; padding: .4rem 1.1rem; font: 600 .88rem var(--fuente); color: var(--tinta); cursor: pointer; }
 .seg[aria-pressed=true] { background: var(--azul); color: var(--blanco); box-shadow: 0 2px 8px rgba(4, 52, 112, .3); }
 
 /* Pines */
@@ -19,17 +19,17 @@
 @keyframes onda { 0% { transform: scale(1); opacity: .45; } 100% { transform: scale(2.4); opacity: 0; } }
 
 /* Panel de detalle */
-.panel-punto { background: var(--blanco); border-radius: var(--radio); box-shadow: var(--sombra); padding: 1.3rem 1.4rem; border-top: 5px solid var(--dorado); position: sticky; top: 8.5rem; }
-.panel-punto h3 { color: var(--azul); margin: .6rem 0 .3rem; font-size: 1.2rem; font-weight: 800; }
+.panel-punto { background: var(--superficie); border-radius: var(--radio); box-shadow: var(--sombra); padding: 1.3rem 1.4rem; border-top: 5px solid var(--dorado); position: sticky; top: 8.5rem; }
+.panel-punto h3 { color: var(--tinta); margin: .6rem 0 .3rem; font-size: 1.2rem; font-weight: 800; }
 .panel-punto p { margin: 0 0 .6rem; color: var(--gris); }
 .etiqueta-estado { display: inline-block; padding: .2rem .8rem; border-radius: 999px; font-size: .76rem; font-weight: 700; }
-.etiqueta-estado.activo { background: var(--rojo-claro); color: var(--rojo); }
-.etiqueta-estado.ilustrativo { background: var(--azul-claro); color: var(--azul); }
+.etiqueta-estado.activo { background: var(--rojo-claro); color: var(--tinta-roja); }
+.etiqueta-estado.ilustrativo { background: var(--azul-claro); color: var(--tinta); }
 
 /* Lista de puntos */
 .lista-puntos { display: grid; gap: .5rem; margin-top: .25rem; }
-.item-punto { display: flex; align-items: center; gap: .7rem; text-align: left; background: var(--blanco); border: 2px solid var(--borde); border-radius: 14px;
-  padding: .55rem .9rem; font: 600 .92rem var(--fuente); color: var(--azul); cursor: pointer; transition: border-color .15s, background .15s; }
+.item-punto { display: flex; align-items: center; gap: .7rem; text-align: left; background: var(--superficie); border: 2px solid var(--borde); border-radius: 14px;
+  padding: .55rem .9rem; font: 600 .92rem var(--fuente); color: var(--tinta); cursor: pointer; transition: border-color .15s, background .15s; }
 .item-punto:hover { border-color: var(--azul-med); }
 .item-punto[aria-pressed=true] { border-color: var(--dorado); background: var(--dorado-claro); }
 .item-punto .num { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--azul); color: var(--blanco); font-size: .85rem; font-weight: 800; }
