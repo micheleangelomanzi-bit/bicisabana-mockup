@@ -1,7 +1,8 @@
 /* BiciSabana · Panel principal.
    Todo texto que viene del usuario se inserta con textContent; innerHTML solo se usa para iconos SVG estáticos.
    Requerimientos propios: RP-01 modo oscuro · RP-02 reservas · RP-03 tiempo en vivo · RP-04 historial ·
-   RP-05 huella verde · RP-06 daños y mantenimiento · RP-07 favoritas · RP-08 logros · RP-09 calificación · RP-10 CSV. */
+   RP-05 huella verde · RP-06 daños y mantenimiento · RP-07 favoritas · RP-08 logros · RP-09 calificación · RP-10 CSV ·
+   RP-11 alerta de lluvia · RP-12 recordatorios · RP-13 trayectos en el campus · RP-14 préstamo grupal · RP-15 tarjeta para compartir. */
 (() => {
   const sesion = Auth.exigirSesion();       // sin sesión vuelve al login
   if (!sesion) return;
@@ -45,7 +46,12 @@
     descarga: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
     estrella: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
     luna: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
-    sol: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'
+    sol: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    nube: '<path d="M7 17a4 4 0 1 1 .9-7.9A5.5 5.5 0 0 1 18.5 11 3 3 0 0 1 18 17z"/><path d="M8 20l-1 2M12 20l-1 2M16 20l-1 2"/>',
+    campana: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21a2 2 0 0 0 4 0"/>',
+    grupo: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 3-5.5 6.5-5.5s6.5 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.8"/><path d="M17 14.5c2.6 0 4.5 1.5 4.5 4.5"/>',
+    compartir: '<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/>',
+    ruta: '<circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8.5 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.5"/>'
   };
   function icono(nombre) {
     const s = h("span", { class: "ico", "aria-hidden": "true" });
@@ -105,7 +111,7 @@
   function accionReservar(codigo) { toast(Datos.reservar(codigo, yo)); renderizar(actual); }
   function accionCancelar(codigo) { toast(Datos.cancelarReserva(codigo, sesion)); renderizar(actual); }
   function accionReparar(codigo) { toast(Datos.reparar(codigo)); renderizar(actual); }
-  const puedeDevolver = (b) => !b.disponible && (esAdmin || b.prestadaA === sesion.codigo);
+  const puedeDevolver = (b) => !b.disponible && (esAdmin || Datos.esResponsable(b, sesion.codigo));
   const esMiReserva = (b) => Datos.estado(b) === "reservada" && b.reservadaA === sesion.codigo;
 
   // RP-03 / RP-02: textos de tiempo que se actualizan solos
@@ -142,7 +148,7 @@
         fav.setAttribute("aria-pressed", String(favoritas.has(b.codigo)));
         if (actual === "bicicletas" && filtro === "favoritas") renderizar("bicicletas");
       } }, icono("estrella"));
-    const tuya = (!b.disponible && b.prestadaA === sesion.codigo) || esMiReserva(b);
+    const tuya = Datos.esResponsable(b, sesion.codigo) || esMiReserva(b);
     return h("article", { class: "bici " + clase + (Datos.vencida(b) ? " vencida" : ""), "aria-label": `Bicicleta ${b.codigo}: ${texto}` },
       fav, tuya ? h("span", { class: "etiqueta-tuya" }, "Tuya") : null,
       dibujoBici("dibujo"),
@@ -150,7 +156,7 @@
       h("div", { class: "color" }, h("span", { class: "punto", style: `background:${COLORES[b.color] || "#9e9e9e"}` }), b.color),
       h("span", { class: "insignia " + clase }, texto),
       etiquetaTiempo(b),
-      esAdmin && !b.disponible ? h("div", { class: "ayuda" }, b.nombre) : null,
+      !b.disponible && (esAdmin || b.prestadaA !== sesion.codigo) ? h("div", { class: "ayuda" }, b.grupo ? `Grupo · ${b.nombre}` : b.nombre) : null,
       acciones);
   }
 
@@ -172,12 +178,156 @@
   }
   const hoy = () => new Date().toISOString().slice(0, 10);
 
+  // ---------- RP-11: clima del campus ----------
+  function climaCaja() {
+    const caja = h("div", { class: "clima cargando", "aria-live": "polite" }, icono("nube"), h("span", {}, "Consultando el clima del campus…"));
+    Clima.consultar().then(c => {
+      if (!c) {
+        caja.className = "clima error";
+        caja.replaceChildren(icono("nube"), h("span", {}, "No pudimos consultar el clima ahora. Mira el cielo antes de salir."));
+        return;
+      }
+      const n = Clima.nivel(c);
+      const partes = [];
+      if (c.lloviendo) partes.push("Está lloviendo");
+      if (c.temp !== null) partes.push(`${num(c.temp)} °C en el campus`);
+      if (c.prob !== null) partes.push(`${c.prob} % de probabilidad de lluvia en las próximas 3 horas`);
+      caja.className = "clima " + n;
+      caja.replaceChildren(icono("nube"), h("div", {}, h("strong", {}, Clima.CONSEJOS[n]), h("span", { class: "d" }, partes.join(" · ") + ". "),
+        h("a", { href: "https://open-meteo.com/", target: "_blank", rel: "noopener" }, "Datos: Open-Meteo")));
+    });
+    return caja;
+  }
+
+  // ---------- RP-12: recordatorios de devolución ----------
+  const AVISO_ANTES = 15;   // minutos antes del límite de 2 horas
+  const LLAVE_REC = "bs_recordar_" + sesion.codigo;
+  let recordar = false;
+  try { recordar = localStorage.getItem(LLAVE_REC) === "si"; } catch (e) { /* sin almacenamiento */ }
+  const avisados = new Set();
+  try { JSON.parse(sessionStorage.getItem("bs_avisados") || "[]").forEach(x => avisados.add(x)); } catch (e) { /* ignorar */ }
+  const hayNotificaciones = () => typeof Notification === "function";
+  function notificar(titulo, cuerpo) {
+    toast({ tipo: "aviso", texto: `${titulo} ${cuerpo}` });   // siempre avisa dentro de la página
+    if (recordar && hayNotificaciones() && Notification.permission === "granted") {
+      try { new Notification(titulo, { body: cuerpo, icon: "assets/logo.png", tag: "bicisabana" }); } catch (e) { /* algunos celulares no lo permiten */ }
+    }
+  }
+  function revisarRecordatorios() {
+    if (esAdmin) return;
+    Datos.bicis().filter(b => Datos.esResponsable(b, sesion.codigo)).forEach(b => {
+      const resta = Datos.LIMITE_MIN - Datos.minutosPrestada(b);
+      const clave = (tipo) => `${b.codigo}-${b.desde}-${tipo}`;
+      if (resta <= 0 && !avisados.has(clave("vencida"))) {
+        avisados.add(clave("vencida")); avisados.add(clave("pronto"));
+        notificar(`La ${b.codigo} ya pasó las 2 horas.`, "Devuélvela en la estación lo antes posible.");
+      } else if (resta > 0 && resta <= AVISO_ANTES && !avisados.has(clave("pronto"))) {
+        avisados.add(clave("pronto"));
+        notificar(`Te quedan ${resta} min con la ${b.codigo}.`, "Recuerda devolverla antes del límite de 2 horas.");
+      }
+    });
+    try { sessionStorage.setItem("bs_avisados", JSON.stringify([...avisados])); } catch (e) { /* ignorar */ }
+  }
+  function botonRecordatorios() {
+    const btn = h("button", { type: "button", class: "btn mini sec recordar" });
+    const pintar = () => { btn.replaceChildren(icono("campana"), recordar ? "Recordatorios activados" : "Activar recordatorios"); btn.setAttribute("aria-pressed", String(recordar)); };
+    btn.addEventListener("click", async () => {
+      recordar = !recordar;
+      if (recordar) {
+        if (hayNotificaciones() && Notification.permission === "default") { try { await Notification.requestPermission(); } catch (e) { /* ignorar */ } }
+        const permitido = hayNotificaciones() && Notification.permission === "granted";
+        toast(permitido ? { tipo: "ok", texto: `Listo: te avisaremos ${AVISO_ANTES} min antes de cumplir las 2 horas, aunque estés en otra pestaña.` }
+                        : { tipo: "aviso", texto: "Tu navegador no permite notificaciones. Te avisaremos aquí, dentro de la página." });
+      }
+      try { localStorage.setItem(LLAVE_REC, recordar ? "si" : "no"); } catch (e) { /* se mantiene en memoria */ }
+      pintar();
+    });
+    pintar();
+    return btn;
+  }
+
+  // ---------- RP-15: tarjeta para compartir (imagen PNG hecha con canvas) ----------
+  function crearTarjeta(destino) {
+    const r = Datos.resumen(sesion.codigo);
+    const insignias = Datos.logros(sesion.codigo).filter(l => l.obtenido).map(l => l.nombre);
+    const c = document.createElement("canvas");
+    c.width = 1080; c.height = 1350;
+    let ctx = null;
+    try { ctx = c.getContext("2d"); } catch (e) { ctx = null; }
+    if (!ctx) { toast({ tipo: "error", texto: "Tu navegador no permite crear la imagen." }); return; }
+    const FUENTE = "Poppins, 'Segoe UI', Arial, sans-serif";
+    const caja = (x, y, w, alto, radio, color) => {
+      ctx.fillStyle = color; ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(x, y, w, alto, radio); else ctx.rect(x, y, w, alto);
+      ctx.fill();
+    };
+    function dibujar(logo) {
+      const g = ctx.createLinearGradient(0, 0, 1080, 1350);
+      g.addColorStop(0, "#02234d"); g.addColorStop(0.6, "#043470"); g.addColorStop(1, "#0a4a9a");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, 1080, 1350);
+      ctx.fillStyle = "rgba(208, 160, 12, .4)"; ctx.beginPath(); ctx.arc(990, 110, 270, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "rgba(156, 8, 12, .35)"; ctx.beginPath(); ctx.arc(70, 1300, 230, 0, Math.PI * 2); ctx.fill();
+      if (logo) { ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(150, 150, 80, 0, Math.PI * 2); ctx.fill(); ctx.drawImage(logo, 98, 98, 104, 104); }
+      ctx.fillStyle = "#ffffff"; ctx.font = `800 56px ${FUENTE}`; ctx.fillText("BiciSabana", 250, 142);
+      ctx.fillStyle = "#cbd8ef"; ctx.font = `500 30px ${FUENTE}`; ctx.fillText("Universidad de La Sabana", 250, 190);
+
+      ctx.fillStyle = "#d0a00c"; ctx.font = `700 38px ${FUENTE}`; ctx.fillText("MI HUELLA VERDE", 90, 350);
+      ctx.fillStyle = "#ffffff"; ctx.font = `800 60px ${FUENTE}`; ctx.fillText(`${primerNombre} ha pedaleado`, 90, 430);
+      const km = num(r.km, 1);
+      ctx.font = `800 210px ${FUENTE}`; ctx.fillText(km, 80, 650);
+      const ancho = ctx.measureText(km).width;
+      ctx.fillStyle = "#d0a00c"; ctx.font = `800 80px ${FUENTE}`; ctx.fillText("km", 100 + ancho, 650);
+
+      const datos = [[`${num(r.co2, 2)} kg`, "de CO₂ evitado"], [String(r.viajes), r.viajes === 1 ? "viaje" : "viajes"], [Datos.duracion(r.minutos), "de préstamo"]];
+      datos.forEach(([valor, et], i) => {
+        const x = 90 + i * 310;
+        caja(x, 720, 280, 190, 28, "rgba(255, 255, 255, .12)");
+        ctx.fillStyle = "#ffffff"; ctx.font = `800 ${valor.length > 7 ? 46 : 58}px ${FUENTE}`; ctx.fillText(valor, x + 28, 805);
+        ctx.fillStyle = "#cbd8ef"; ctx.font = `500 28px ${FUENTE}`; ctx.fillText(et, x + 28, 860);
+      });
+
+      ctx.fillStyle = "#ffffff"; ctx.font = `700 38px ${FUENTE}`; ctx.fillText(`Insignias: ${insignias.length} de 5`, 90, 1000);
+      let x = 90, y = 1040;
+      ctx.font = `700 30px ${FUENTE}`;
+      (insignias.length ? insignias : ["¡La primera está cerca!"]).forEach(nombre => {
+        const w = ctx.measureText(nombre).width + 56;
+        if (x + w > 990) { x = 90; y += 76; }
+        caja(x, y, w, 58, 29, insignias.length ? "#d0a00c" : "rgba(255, 255, 255, .18)");
+        ctx.fillStyle = insignias.length ? "#2a1f00" : "#ffffff"; ctx.fillText(nombre, x + 28, y + 40);
+        x += w + 16;
+      });
+      ctx.fillStyle = "#9fb3d6"; ctx.font = `500 26px ${FUENTE}`;
+      ctx.fillText("Mockup académico · cifras estimadas e ilustrativas", 90, 1290);
+    }
+    function terminar(logo) {
+      dibujar(logo);
+      c.toBlob(blob => {
+        if (!blob) { toast({ tipo: "error", texto: "No se pudo crear la imagen." }); return; }
+        const url = URL.createObjectURL(blob);
+        const nombre = "mi-huella-bicisabana.png";
+        const acciones = h("div", { class: "pie-tarjeta" }, h("a", { class: "btn", href: url, download: nombre }, icono("descarga"), "Descargar imagen"));
+        const archivo = typeof File === "function" ? new File([blob], nombre, { type: "image/png" }) : null;
+        if (archivo && navigator.canShare && navigator.canShare({ files: [archivo] })) {
+          acciones.append(h("button", { class: "btn sec", type: "button", onclick: () => navigator.share({ files: [archivo], title: "Mi huella verde en BiciSabana" }).catch(() => {}) }, icono("compartir"), "Compartir"));
+        }
+        destino.replaceChildren(h("img", { class: "tarjeta-img", src: url, alt: `Tarjeta: ${primerNombre} ha pedaleado ${num(r.km, 1)} km y evitado ${num(r.co2, 2)} kg de CO₂` }), acciones);
+      }, "image/png");
+    }
+    const listo = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+    listo.then(() => {
+      const logo = new Image();
+      logo.onload = () => terminar(logo);
+      logo.onerror = () => terminar(null);
+      logo.src = "assets/logo.png";
+    });
+  }
+
   // ---------- Vistas ----------
   const vistas = {
     inicio() {
       const t = Datos.totales();
       const r = Datos.resumen(sesion.codigo);
-      const mias = Datos.bicis().filter(b => esAdmin ? !b.disponible : (b.prestadaA === sesion.codigo && !b.disponible) || esMiReserva(b));
+      const mias = Datos.bicis().filter(b => esAdmin ? !b.disponible : Datos.esResponsable(b, sesion.codigo) || esMiReserva(b));
       const misVencidas = mias.filter(Datos.vencida).length;
       const accion = (vista, ic, titulo, desc) => h("button", { class: "accion", type: "button", onclick: () => renderizar(vista) },
         h("div", { class: "ico-caja" }, icono(ic)), h("strong", {}, titulo), h("span", { class: "d" }, desc));
@@ -188,6 +338,7 @@
         poner(alerta, { tipo: "aviso", texto: esAdmin ? `Hay ${misVencidas} bicicleta(s) con más de 2 horas de préstamo.` : "Tienes una bicicleta con más de 2 horas de préstamo. Devuélvela pronto." });
       }
       const lista = h("div", { class: "tarjeta" }, h("h2", { class: "titulo" }, icono("reloj"), esAdmin ? "Bicicletas prestadas ahora" : "Mis préstamos y reservas"),
+        esAdmin ? null : h("div", { class: "fila-recordar" }, h("p", { class: "ayuda" }, `Te avisamos ${AVISO_ANTES} minutos antes de que se cumplan las 2 horas.`), botonRecordatorios()),
         mias.length === 0
           ? h("p", { class: "vacio" }, esAdmin ? "No hay bicicletas prestadas en este momento." : "No tienes bicicletas prestadas ni reservadas. ¡Anímate a pedalear!")
           : h("div", { class: "rejilla" }, mias.map(tarjetaBici)));
@@ -195,6 +346,7 @@
       return h("div", { class: "vista-anim" },
         h("section", { class: "bienvenida" }, h("h2", {}, `¡Hola, ${primerNombre}!`),
           h("p", {}, esAdmin ? "Panel de administración de la estación BiciSabana." : "¿Listo para pedalear por el campus? Elige una opción.")),
+        climaCaja(),
         alerta,
         h("div", { class: "stats" },
           stat("", "check", t.disponibles, "Bicicletas disponibles"),
@@ -271,6 +423,28 @@
       // Las reservadas por mí y las favoritas aparecen primero
       const libres = Datos.bicis().filter(b => Datos.libreParaEstudiante(b, esAdmin ? "" : sesion.codigo))
         .sort((a, b) => (esMiReserva(b) - esMiReserva(a)) || (favoritas.has(b.codigo) - favoritas.has(a.codigo))).slice(0, 8);
+      // RP-14: préstamo grupal (hasta 2 compañeros)
+      const companeros = [];
+      let contador = 0;
+      const filasGrupo = h("div", { class: "grupo-filas" });
+      const btnAgregar = h("button", { type: "button", class: "btn mini sec", onclick: () => agregarCompanero() }, icono("grupo"), "Agregar compañero");
+      const actualizarGrupo = () => { btnAgregar.disabled = companeros.length >= Datos.MAX_GRUPO - 1; };
+      function agregarCompanero() {
+        if (companeros.length >= Datos.MAX_GRUPO - 1) return;
+        const n = ++contador;
+        const fila = {
+          nombre: h("input", { type: "text", id: `comp-nom-${n}`, autocomplete: "off", placeholder: "Nombre y apellido" }),
+          codigo: h("input", { type: "text", id: `comp-cod-${n}`, inputmode: "numeric", maxlength: "6", autocomplete: "off", placeholder: "6 números" })
+        };
+        fila.el = h("div", { class: "grupo-fila" },
+          h("div", {}, h("label", { for: fila.nombre.id }, "Compañero"), fila.nombre),
+          h("div", {}, h("label", { for: fila.codigo.id }, "Código"), fila.codigo),
+          h("button", { type: "button", class: "quitar", "aria-label": "Quitar compañero", title: "Quitar", onclick: () => {
+            companeros.splice(companeros.indexOf(fila), 1); fila.el.remove(); actualizarGrupo(); btnAgregar.focus();
+          } }, "×"));
+        companeros.push(fila); filasGrupo.append(fila.el); actualizarGrupo(); fila.nombre.focus();
+      }
+
       const form = h("form", { novalidate: true, onsubmit: (e) => {
         e.preventDefault();
         const nom = nombre.value.trim();
@@ -281,7 +455,10 @@
           return poner(msg, { tipo: "error", texto: "Código de estudiante inválido. No se puede prestar. Debe tener 6 números." });
         }
         if (codBici.value.trim() === "") return poner(msg, { tipo: "error", texto: "Escribe el código de la bicicleta." });
-        const r = Datos.prestar(codBici.value, { codigo: est, nombre: nom || sesion.nombre });
+        const lider = { codigo: est, nombre: nom || sesion.nombre };
+        const r = companeros.length
+          ? Datos.prestarGrupo(codBici.value, lider, companeros.map(f => ({ nombre: f.nombre.value, codigo: f.codigo.value })))
+          : Datos.prestar(codBici.value, lider);
         poner(msg, r); toast(r);
         if (r.tipo === "ok") { codBici.value = ""; renderizar("prestar", null, r); } else codBici.focus();
       }},
@@ -291,14 +468,19 @@
         h("div", { class: "campo" }, h("label", { for: "cod-bici" }, "Código de la bicicleta"), codBici,
           libres.length ? h("p", { class: "ayuda" }, "Disponibles ahora (toca para elegir; ★ = favorita):") : h("p", { class: "ayuda" }, "No hay bicicletas disponibles por ahora."),
           chipsSugeridos(libres, (c) => { codBici.value = c; codBici.focus(); })),
+        h("fieldset", { class: "grupo" }, h("legend", {}, icono("grupo"), "¿Vas con amigos? Préstamo grupal (opcional)"),
+          h("p", { class: "ayuda" }, `Agrega hasta ${Datos.MAX_GRUPO - 1} compañeros y a cada uno se le asigna una bicicleta libre. Quien hace el préstamo puede devolverlas todas.`),
+          filasGrupo, btnAgregar),
         h("button", { class: "btn", type: "submit" }, icono("prestar"), "Prestar bicicleta"));
       return h("div", { class: "vista-anim" },
         h("h2", { class: "titulo" }, icono("prestar"), "Prestar una bicicleta"),
         h("p", { class: "subtitulo" }, "Completa los datos y la bicicleta queda a nombre del estudiante."),
+        climaCaja(),
         h("div", { class: "dos-col" }, h("div", { class: "tarjeta" }, form, msg),
           h("aside", { class: "lateral" }, h("h3", {}, "Reglas del préstamo"),
             h("ul", {}, h("li", {}, "El código de estudiante tiene exactamente 6 números."), h("li", {}, "Una bicicleta prestada, reservada por otra persona o en mantenimiento no se puede prestar."),
-              h("li", {}, "El préstamo dura máximo 2 horas."), h("li", {}, "Los intentos con código inválido quedan registrados."), h("li", {}, "Escribe el código de la bicicleta como B05 o b05.")))));
+              h("li", {}, "El préstamo dura máximo 2 horas."), h("li", {}, "En préstamo grupal van máximo 3 personas y nadie del grupo puede tener otra bicicleta."),
+              h("li", {}, "Los intentos con código inválido quedan registrados."), h("li", {}, "Escribe el código de la bicicleta como B05 o b05.")))));
     },
 
     devolver() {    // RF-05 + RP-06, RP-09
@@ -396,6 +578,34 @@
       });
 
       seleccionar("central");
+
+      // RP-13: ¿Cuánto me demoro? (ruta entre dos puntos del campus)
+      const corto = (p) => p.nombre.replace(/^Punto /, "").replace(" BiciSabana", "").replace(" Business School", "");
+      const opciones = () => Campus.PUNTOS.map(p => h("option", { value: p.id }, `${p.n}. ${corto(p)}`));
+      const origen = h("select", { id: "origen" }, opciones());
+      const destino = h("select", { id: "destino" }, opciones());
+      destino.value = "inalde";
+      const resultado = h("div", { class: "trayecto-res", "aria-live": "polite" });
+      function calcular() {
+        const m = Campus.distancia(origen.value, destino.value);
+        Campus.mostrarRuta(caja, origen.value, destino.value);
+        if (!m) { resultado.replaceChildren(h("p", { class: "ayuda" }, "Elige dos puntos distintos para ver la ruta.")); return; }
+        const t = Campus.tiempos(m);
+        resultado.replaceChildren(
+          h("div", { class: "trayecto-datos" },
+            h("div", {}, h("span", { class: "n" }, m >= 1000 ? `${num(m / 1000, 1)} km` : `${m} m`), h("span", { class: "d" }, "distancia aprox.")),
+            h("div", { class: "en-bici" }, h("span", { class: "n" }, `${t.bici} min`), h("span", { class: "d" }, "en bicicleta")),
+            h("div", {}, h("span", { class: "n" }, `${t.pie} min`), h("span", { class: "d" }, "caminando"))),
+          h("p", { class: "ayuda" }, t.pie > t.bici ? `En bici te ahorras unos ${t.pie - t.bici} minutos. Valores aproximados.` : "Es muy cerca: da igual ir caminando o en bici."));
+      }
+      origen.addEventListener("change", calcular);
+      destino.addEventListener("change", calcular);
+      const trayecto = h("div", { class: "tarjeta trayecto" }, h("h3", {}, icono("ruta"), "¿Cuánto me demoro?"),
+        h("p", { class: "ayuda" }, "Elige de dónde sales y a dónde vas: la ruta aparece en el mapa."),
+        h("div", { class: "trayecto-sel" }, h("div", {}, h("label", { for: "origen" }, "Desde"), origen), h("div", {}, h("label", { for: "destino" }, "Hasta"), destino)),
+        resultado);
+      calcular();
+
       return h("div", { class: "vista-anim" },
         h("h2", { class: "titulo" }, icono("pin"), "Puntos de préstamo"),
         h("p", { class: "subtitulo" }, "Toca un punto del mapa o de la lista para ver sus detalles."),
@@ -404,7 +614,7 @@
             h("div", { class: "selector-vista", role: "group", "aria-label": "Tipo de mapa" }, botonesVista), caja,
             h("div", { class: "leyenda" }, h("span", {}, h("span", { class: "leyenda-pin central" }), "Estación con bicicletas"), h("span", {}, h("span", { class: "leyenda-pin" }), "Punto ilustrativo")),
             h("p", { class: "ayuda" }, "Imágenes: capturas de Apple Maps, reducidas para la web. Las ubicaciones de los puntos son ilustrativas.")),
-            lista),
+            trayecto, lista),
           panel));
     },
 
@@ -415,7 +625,7 @@
 
       const huella = h("div", { class: "stats" },
         stat("", "bicis", r.viajes, "Viajes completados"),
-        stat("oro", "reloj", Datos.duracion(r.minutos), "Tiempo pedaleando"),
+        stat("oro", "reloj", Datos.duracion(r.minutos), "Tiempo con bicicleta"),
         stat("", "mapa", `${num(r.km, 1)} km`, "Distancia estimada"),
         stat("verde", "hoja", `${num(r.co2, 2)} kg`, "CO₂ evitado"));
 
@@ -452,6 +662,12 @@
         huella,
         h("p", { class: "ayuda nota-huella" }, "Huella verde estimada: hasta 30 min de pedaleo por viaje a 12 km/h y 0,12 kg de CO₂ por km que se habrían emitido en carro. Cifras ilustrativas."),
         logros,
+        esAdmin ? null : (() => {
+          const zona = h("div", { class: "compartir-res" });
+          return h("div", { class: "tarjeta compartir" }, h("h2", { class: "titulo" }, icono("compartir"), "Comparte tu huella verde"),
+            h("p", { class: "subtitulo" }, "Crea una imagen con tus kilómetros, el CO₂ que evitaste y tus insignias para subirla a tus historias."),
+            zona, h("button", { class: "btn oro", type: "button", onclick: () => crearTarjeta(zona) }, icono("compartir"), "Crear mi tarjeta"));
+        })(),
         h("div", { class: "tarjeta" }, h("h2", { class: "titulo" }, icono("reloj"), "Viajes"), tabla));
     },
 
@@ -545,7 +761,7 @@
       if (el.dataset.tipo === "prestamo") el.classList.toggle("vencida", Datos.vencida(b));
     });
   }
-  setInterval(actualizarTiempos, 20000);
+  setInterval(() => { actualizarTiempos(); revisarRecordatorios(); }, 20000);
 
   // RP-01: botón de modo oscuro en el encabezado
   const botonTema = h("button", { type: "button", id: "tema", class: "btn sec solo-icono", onclick: () => { Tema.alternar(); pintarTema(); } });
@@ -571,4 +787,5 @@
   });
   const inicial = location.hash.slice(1);
   renderizar(vistas[inicial] || ALIAS[inicial] ? inicial : "inicio");
+  revisarRecordatorios();
 })();
